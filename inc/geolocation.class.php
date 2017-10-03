@@ -56,7 +56,7 @@ class PluginFlyvemdmGeolocation extends CommonDBTM {
     */
    protected $usenotepadRights         = true;
 
-   public static $types                = array('Computer');
+   public static $types                = ['Computer'];
 
    /**
     * Localized name of the type
@@ -127,21 +127,21 @@ class PluginFlyvemdmGeolocation extends CommonDBTM {
     */
    public function getRights($interface='central') {
       $rights = parent::getRights();
-      //$values = array(READ    => __('Read'),
-      //                PURGE   => array('short' => __('Purge'),
-      //                                 'long'  => _x('button', 'Delete permanently')));
+      //$values = [READ    => __('Read'),
+      //           PURGE   => ['short' => __('Purge'),
+      //                       'long'  => _x('button', 'Delete permanently')]];
 
       //$values += ObjectLock::getRightsToAdd( get_class($this), $interface ) ;
 
       //if ($this->maybeDeleted()) {
-      //   $values[DELETE] = array('short' => __('Delete'),
-      //                           'long'  => _x('button', 'Put in dustbin'));
+      //   $values[DELETE] = ['short' => __('Delete'),
+      //                      'long'  => _x('button', 'Put in dustbin')];
       //}
       //if ($this->usenotepad) {
-      //   $values[READNOTE] = array('short' => __('Read notes'),
-      //                             'long' => __("Read the item's notes"));
-      //   $values[UPDATENOTE] = array('short' => __('Update notes'),
-      //                               'long' => __("Update the item's notes"));
+      //   $values[READNOTE] = ['short' => __('Read notes'),
+      //                        'long' => __("Read the item's notes")];
+      //   $values[UPDATENOTE] = ['short' => __('Update notes'),
+      //                          'long' => __("Update the item's notes")];
       //}
 
       return $rights;
@@ -185,6 +185,11 @@ class PluginFlyvemdmGeolocation extends CommonDBTM {
       return $input;
    }
 
+   /**
+    * Prepare data before update
+    * @param array $input
+    * @return array|false if the update fails
+    */
    public function prepareInputForUpdate($input) {
       if (!isset($input['latitude']) || !isset($input['longitude'])) {
          Session::addMessageAfterRedirect(__('latitude and longitude are mandatory', 'flyvemdm'));
@@ -249,6 +254,11 @@ class PluginFlyvemdmGeolocation extends CommonDBTM {
       return $where;
    }
 
+   /**
+    * Displays the agents according the datetime
+    * @param CommonDBTM $item
+    * @return string an html with the geolocation of the agent
+    */
    public static function showForAgent(CommonDBTM $item) {
       $computer = new Computer;
       $computer->getFromDB($item->getField('computers_id'));
@@ -274,55 +284,70 @@ class PluginFlyvemdmGeolocation extends CommonDBTM {
       echo $twig->render('computer_geolocation.html', $data);
    }
 
-   /**
-    * @see CommonDBTM::getSearchOptions()
-    */
-   public function getSearchOptions() {
-      $tab = array();
-      $tab['common']             = __s('Geolocation', "flyvemdm");
+   public function getSearchOptionsNew() {
+      $tab = [];
 
-      $i = 2;
-      $tab[$i]['table']           = self::getTable();
-      $tab[$i]['field']           = 'id';
-      $tab[$i]['name']            = __('ID');
-      $tab[$i]['massiveaction']   = false;
-      $tab[$i]['datatype']        = 'number';
+      $tab[] = [
+         'id'                 => 'common',
+         'name'               => __s('Geolocation', 'flyvemdm')
+      ];
 
-      $i++;
-      $tab[$i]['table']           = Computer::getTable();
-      $tab[$i]['field']           = 'id';
-      $tab[$i]['name']            = __('Computer');
-      $tab[$i]['datatype']        = 'dropdown';
-      $tab[$i]['massiveaction']   = false;
+      $tab[] = [
+         'id'                 => '2',
+         'table'              => $this->getTable(),
+         'field'              => 'id',
+         'name'               => __('ID'),
+         'massiveaction'      => false,
+         'datatype'           => 'number'
+      ];
 
-      $i++;
-      $tab[$i]['table']           = self::getTable();
-      $tab[$i]['field']           = 'latitude';
-      $tab[$i]['name']            = __('latitude', 'flyvemdm');
-      $tab[$i]['datatype']        = 'string';
-      $tab[$i]['massiveaction']   = false;
+      $tab[] = [
+         'id'                 => '3',
+         'table'              => 'glpi_computers',
+         'field'              => 'id',
+         'name'               => __('Computer'),
+         'datatype'           => 'dropdown',
+         'massiveaction'      => false
+      ];
 
-      $i++;
-      $tab[$i]['table']           = self::getTable();
-      $tab[$i]['field']           = 'longitude';
-      $tab[$i]['name']            = __('longitude', 'flyvemdm');
-      $tab[$i]['datatype']        = 'string';
-      $tab[$i]['massiveaction']   = false;
+      $tab[] = [
+         'id'                 => '4',
+         'table'              => $this->getTable(),
+         'field'              => 'latitude',
+         'name'               => __('latitude'),
+         'datatype'           => 'string',
+         'massiveaction'      => false
+      ];
 
-      $i++;
-      $tab[$i]['table']           = self::getTable();
-      $tab[$i]['field']           = 'date';
-      $tab[$i]['name']            = __('date');
-      $tab[$i]['datatype']        = 'string';
-      $tab[$i]['massiveaction']   = false;
+      $tab[] = [
+         'id'                 => '5',
+         'table'              => $this->getTable(),
+         'field'              => 'longitude',
+         'name'               => __('longitude'),
+         'datatype'           => 'string',
+         'massiveaction'      => false
+      ];
+
+      $tab[] = [
+         'id'                 => '6',
+         'table'              => $this->getTable(),
+         'field'              => 'date',
+         'name'               => __('date'),
+         'datatype'           => 'string',
+         'massiveaction'      => false
+      ];
 
       return $tab;
    }
 
+   /**
+    * Deletes the geolocation related with the computer
+    * @param CommonDBTM $item
+    */
    public function hook_computer_purge(CommonDBTM $item) {
       if ($item instanceof Computer) {
          $geolocation = new self();
-         $geolocation->deleteByCriteria(array('computers_id' => $item->getID()));
+         $geolocation->deleteByCriteria(['computers_id' => $item->getID()]);
       }
    }
 }

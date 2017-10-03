@@ -41,6 +41,10 @@ class PluginFlyvemdmMenu extends CommonGLPI {
 
    const TEMPLATE = 'menu.html';
 
+   /**
+    * Displays the menu name
+    * @return string the menu name
+    */
    public static function getMenuName() {
       return __('Flyve MDM');
    }
@@ -117,24 +121,23 @@ class PluginFlyvemdmMenu extends CommonGLPI {
    }
 
    /**
-    *
-    *
-    *
+    * Gets the menu content
+    * @return array the menu content
     */
    public static function getMenuContent() {
       $front_flyvemdm = "/plugins/flyvemdm/front";
 
-      $menu = array();
+      $menu = [];
       $menu['title'] = self::getMenuName();
       $menu['page']  = "$front_flyvemdm/menu.php";
 
-      $itemtypes = array(
-            'PluginFlyvemdmAgent'                  => 'agent',
-            'PluginFlyvemdmPackage'                => 'package',
-            'PluginFlyvemdmFile'                   => 'file',
-            'PluginFlyvemdmFleet'                  => 'fleet',
-            'PluginFlyvemdmInvitation'             => 'invitation',
-      );
+      $itemtypes = [
+         PluginFlyvemdmAgent::class       => 'agent',
+         PluginFlyvemdmPackage::class     => 'package',
+         PluginFlyvemdmFile::class        => 'file',
+         PluginFlyvemdmFleet::class       => 'fleet',
+         PluginFlyvemdmInvitation::class  => 'invitation',
+      ];
 
       $pluralNumber = Session::getPluralNumber();
       foreach ($itemtypes as $itemtype => $option) {

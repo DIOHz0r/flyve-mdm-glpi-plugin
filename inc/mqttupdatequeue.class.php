@@ -40,16 +40,29 @@ class PluginFlyvemdmMqttupdatequeue extends CommonDBTM {
 
    protected static $delay = 'PT30S';
 
+   /**
+    * Prepares data before adding the item
+    * @param array $input
+    * @return array the modified datas
+    */
    public function prepareInputForAdd($input) {
       $input['date'] = (new DateTime("now", new DateTimeZone("UTC")))->format('Y-m-d H:i:s');
 
       return $input;
    }
 
+   /**
+    * Sets the delay
+    * @param mixed $delay
+    */
    public static function setDelay($delay) {
       self::$delay = $delay;
    }
 
+   /**
+    * Returns the name of the type
+    * @param integer $count
+    */
    static function getTypeName($count = 0) {
       return _n('Queued MQTT message', 'Queued MQTT messages', $count);
    }
@@ -65,7 +78,7 @@ class PluginFlyvemdmMqttupdatequeue extends CommonDBTM {
 
       switch ($name) {
          case 'UpdateTopics' :
-            return array('description' => __('Sends queued MQTT messages'));
+            return ['description' => __('Sends queued MQTT messages')];
       }
    }
 
@@ -123,7 +136,7 @@ class PluginFlyvemdmMqttupdatequeue extends CommonDBTM {
             $group = $row['group'];
             $fleet = new PluginFlyvemdmFleet();
             $fleet->getFromDB($fleetId);
-            $task->publishPolicies($fleet, array($group));
+            $task->publishPolicies($fleet, [$group]);
 
             // mark done more recent policies on the same group and fleet
             $updateQueue = new static();

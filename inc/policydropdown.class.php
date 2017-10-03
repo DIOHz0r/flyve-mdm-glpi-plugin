@@ -81,7 +81,7 @@ class PluginFlyvemdmPolicyDropdown extends PluginFlyvemdmPolicyBase implements P
     * @see PluginFlyvemdmPolicyBase::translateData()
     */
    public function translateData() {
-      $translated = array();
+      $translated = [];
       foreach ($this->valueList as $key => $value) {
          $translated[$key] = __($value, 'flyvemdm');
       }
@@ -89,10 +89,19 @@ class PluginFlyvemdmPolicyDropdown extends PluginFlyvemdmPolicyBase implements P
       return $translated;
    }
 
+   /**
+    * Shows the input value
+    * @return array a list of the values
+    */
    public function showValueInput() {
-      return Dropdown::showFromArray('value', $this->valueList, array('display' => false));
+      return Dropdown::showFromArray('value', $this->valueList, ['display' => false]);
    }
 
+   /**
+    * Shows the value
+    * @param PluginFlyvemdmTask $task
+    * @return array a list of the values
+    */
    public function showValue(PluginFlyvemdmTask $task) {
       $value = $task->getField('value');
       return $this->valueList[$value];

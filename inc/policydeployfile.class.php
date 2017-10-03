@@ -65,7 +65,7 @@ class PluginFlyvemdmPolicyDeployfile extends PluginFlyvemdmPolicyBase implements
       }
 
       // Check the itemtype is a file
-      if ($itemtype != 'PluginFlyvemdmFile') {
+      if ($itemtype != PluginFlyvemdmFile::class) {
          Session::addMessageAfterRedirect(__('You must choose a file to apply this policy', 'flyvemdm'));
          return false;
       }
@@ -224,6 +224,10 @@ class PluginFlyvemdmPolicyDeployfile extends PluginFlyvemdmPolicyBase implements
       return true;
    }
 
+   /**
+    * Shows the input value
+    * @return string an HTML
+    */
    public function showValueInput() {
       $out = PluginFlyvemdmFile::dropdown([
             'display'      => false,
@@ -243,6 +247,11 @@ class PluginFlyvemdmPolicyDeployfile extends PluginFlyvemdmPolicyBase implements
       return $out;
    }
 
+   /**
+    * Displays the value
+    * @param PluginFlyvemdmTask $task
+    * @return array|false the file
+    */
    public function showValue(PluginFlyvemdmTask $task) {
       $file = new PluginFlyvemdmFile();
       if ($file->getFromDB($task->getField('items_id'))) {

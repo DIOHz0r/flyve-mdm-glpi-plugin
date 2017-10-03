@@ -61,6 +61,10 @@ class PluginFlyvemdmPackage extends CommonDBTM {
       return _n('Package', 'Packages', $nb, "flyvemdm");
    }
 
+   /**
+    * Returns the picture file for the menu
+    * @return string the menu picture
+    */
    public static function getMenuPicture() {
       return '../pics/picto-package.png';
    }
@@ -68,8 +72,8 @@ class PluginFlyvemdmPackage extends CommonDBTM {
    /**
     * @see CommonGLPI::defineTabs()
     */
-   public function defineTabs($options = array()) {
-      $tab = array();
+   public function defineTabs($options = []) {
+      $tab = [];
       $this->addDefaultFormTab($tab);
       $this->addStandardTab('Notepad', $tab, $options);
       $this->addStandardTab('Log', $tab, $options);
@@ -112,7 +116,7 @@ class PluginFlyvemdmPackage extends CommonDBTM {
     * @param integer $ID ID of the item to show
     * @param array $options
     */
-   public function showForm($ID, $options=array()) {
+   public function showForm($ID, $options=[]) {
       $this->initForm($ID, $options);
       $this->showFormHeader($options);
 
@@ -358,6 +362,9 @@ class PluginFlyvemdmPackage extends CommonDBTM {
       return $input;
    }
 
+   /**
+    * Actions done after the getFromDB method
+    */
    public function post_getFromDB() {
       // Check the user can view this itemtype and can view this item
       if ($this->canView() && $this->canViewItem()) {
@@ -400,10 +407,10 @@ class PluginFlyvemdmPackage extends CommonDBTM {
     */
    public function pre_deleteItem() {
       $task = new PluginFlyvemdmTask();
-      return $task->deleteByCriteria(array(
+      return $task->deleteByCriteria([
             'itemtype'  => $this->getType(),
             'items_id'  => $this->getID()
-      ));
+      ]);
    }
 
    /**
@@ -426,54 +433,67 @@ class PluginFlyvemdmPackage extends CommonDBTM {
       }
    }
 
-   /**
-    * @see CommonDBTM::getSearchOptions()
-    */
-   public function getSearchOptions() {
-      $tab = array();
-      $tab['common']                 = __s('Package', "flyvemdm");
+   public function getSearchOptionsNew() {
+      $tab = [];
 
-      $i = 1;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'name';
-      $tab[$i]['name']                = __('Name');
-      $tab[$i]['datatype']            = 'itemlink';
-      $tab[$i]['massiveaction']       = false;
+      $tab[] = [
+         'id'                 => 'common',
+         'name'               => __s('Package', 'flyvemdm')
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'id';
-      $tab[$i]['name']                = __('ID');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'number';
+      $tab[] = [
+         'id'                 => '1',
+         'table'              => $this->getTable(),
+         'field'              => 'name',
+         'name'               => __('Name'),
+         'datatype'           => 'itemlink',
+         'massiveaction'      => false
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'alias';
-      $tab[$i]['name']                = __('alias', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '2',
+         'table'              => $this->getTable(),
+         'field'              => 'id',
+         'name'               => __('ID'),
+         'massiveaction'      => false,
+         'datatype'           => 'number'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'version';
-      $tab[$i]['name']                = __('version', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '3',
+         'table'              => $this->getTable(),
+         'field'              => 'alias',
+         'name'               => __('alias'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'icon';
-      $tab[$i]['name']                = __('icon', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'image';
+      $tab[] = [
+         'id'                 => '4',
+         'table'              => $this->getTable(),
+         'field'              => 'version',
+         'name'               => __('version'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'filesize';
-      $tab[$i]['name']                = __('filesize', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '5',
+         'table'              => $this->getTable(),
+         'field'              => 'icon',
+         'name'               => __('icon'),
+         'massiveaction'      => false,
+         'datatype'           => 'image'
+      ];
+
+      $tab[] = [
+         'id'                 => '6',
+         'table'              => $this->getTable(),
+         'field'              => 'filesize',
+         'name'               => __('filesize'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
       return $tab;
    }
@@ -483,7 +503,7 @@ class PluginFlyvemdmPackage extends CommonDBTM {
     * @return boolean|string
     */
    public function getFileURL() {
-      $config = Config::getConfigurationValues('flyvemdm', array('deploy_base_url'));
+      $config = Config::getConfigurationValues('flyvemdm', ['deploy_base_url']);
       $deployBaseURL = $config['deploy_base_url'];
 
       if ($deployBaseURL === null) {
@@ -494,6 +514,9 @@ class PluginFlyvemdmPackage extends CommonDBTM {
       return $URL;
    }
 
+   /**
+    * Sends a file
+    */
    protected function sendFile() {
       $streamSource = FLYVEMDM_PACKAGE_PATH . "/" . $this->fields['filename'];
 
@@ -570,8 +593,13 @@ class PluginFlyvemdmPackage extends CommonDBTM {
 
       exit(0);
    }
+
+   /**
+    * Deletes the packages related to the entity
+    * @param CommonDBTM $item
+    */
    public function hook_entity_purge(CommonDBTM $item) {
       $package = new static();
-      $package->deleteByCriteria(array('entities_id' => $item->getField('id')), 1);
+      $package->deleteByCriteria(['entities_id' => $item->getField('id')], 1);
    }
 }

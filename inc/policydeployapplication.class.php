@@ -65,7 +65,7 @@ class PluginFlyvemdmPolicyDeployapplication extends PluginFlyvemdmPolicyBase imp
       }
 
       // Check the itemtype is an application
-      if ($itemtype != 'PluginFlyvemdmPackage') {
+      if ($itemtype != PluginFlyvemdmPackage::class) {
          Session::addMessageAfterRedirect(__('You must choose an application to apply this policy', 'flyvemdm'));
          return false;
       }
@@ -177,18 +177,27 @@ class PluginFlyvemdmPolicyDeployapplication extends PluginFlyvemdmPolicyBase imp
       return true;
    }
 
+   /**
+    * Shows the HTML input tags to edit the value
+    * @return an HTML input
+    */
    public function showValueInput() {
-      $out = PluginFlyvemdmPackage::dropdown(array(
+      $out = PluginFlyvemdmPackage::dropdown([
             'display'      => false,
             'displaywith'  => ['alias'],
             'name'         => 'items_id',
-      ));
+      ]);
       $out .= '<input type="hidden" name="itemtype" value="PluginFlyvemdmPackage" />';
       $out .= '<input type="hidden" name="value[remove_on_delete]" value="1" />';
 
       return $out;
    }
 
+   /**
+    * Shows the value
+    * @param numeric PluginFlyvemdmTask $task
+    * @return mixed the value
+    */
    public function showValue(PluginFlyvemdmTask $task) {
       $package = new PluginFlyvemdmPackage();
       if ($package->getFromDB($task->getField('items_id'))) {

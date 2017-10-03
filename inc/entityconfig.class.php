@@ -53,6 +53,10 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
 
    public static $rightname            = 'flyvemdm:entity';
 
+   /**
+    * Returns the name of the type
+    * @param integer $nb number of item in the type
+    */
    static function getTypeName($nb=0) {
       return _n('Entity configuration', 'Entity configurations', $nb);
    }
@@ -71,6 +75,9 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
       }
    }
 
+   /**
+    * Actions done after the getFromDB method
+    */
    public function post_getFromDB() {
       // find the parent entity
       $entity = new Entity();
@@ -135,6 +142,11 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
       return $input;
    }
 
+   /**
+    * Sanitizes the token life time of the agent
+    * @param string $input
+    * @return array|false the agent token life time
+    */
    protected function sanitizeTokenLifeTime($input) {
       if (isset($input['agent_token_life'])) {
          // Sanitize agent_token_life (see DataInterval)
@@ -163,7 +175,7 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
       // Determine if the entity has been created by FlyveMDM
       $managed = '0';
 
-      $config = Config::getConfigurationValues('flyvemdm', array('default_device_limit'));
+      $config = Config::getConfigurationValues('flyvemdm', ['default_device_limit']);
 
       // Create entity configuration
       $entityconfig = new PluginFlyvemdmEntityconfig();
@@ -198,7 +210,7 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
     */
    public function hook_entity_purge(CommonDBTM $item) {
       $entityConfig = new static();
-      $entityConfig->deleteByCriteria(array('entities_id' => $item->getField('id')), 1);
+      $entityConfig->deleteByCriteria(['entities_id' => $item->getField('id')], 1);
 
       // Delete folders for the entity
       PluginFlyvemdmToolbox::recursiveRmdir(FLYVEMDM_PACKAGE_PATH . "/" . $item->getID());
@@ -212,9 +224,14 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
       return bin2hex(openssl_random_pseudo_bytes(32));
    }
 
+   /**
+    * Retrieve the entity or create it
+    * @param string $ID
+    * @return boolean true if succeed
+    */
    public function getFromDBOrCreate($ID) {
       if (!$this->getFromDB($ID)) {
-         $config = Config::getConfigurationValues('flyvemdm', array('default_device_limit'));
+         $config = Config::getConfigurationValues('flyvemdm', ['default_device_limit']);
 
          $this->add([
                'id'              => $ID,
@@ -227,8 +244,14 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
       }
    }
 
+   /**
+    * Gets the tabs name
+    * @param CommonGLPI $item
+    * @param numeric $withtemplate
+    * @return array Containing the tabs name
+    */
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0) {
-      $tabNames = array();
+      $tabNames = [];
       if (!$withtemplate) {
          if ($item->getType() == 'Entity') {
             $tabNames[1] = __('Flyve MDM supervision', 'flyvemdm');
@@ -282,6 +305,12 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
       return $default_value;
    }
 
+   /**
+    * Shows the tab content
+    * @param CommonGLPI $item
+    * @param integer $tabnum
+    * @param integer $withtemplate
+    */
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum=1, $withtemplate=0) {
 
       if ($item->getType() == 'Entity') {
@@ -301,6 +330,10 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
       return (($ID < 0) || !strlen($ID));
    }
 
+   /**
+    * Displays form when the item is displayed from a related entity
+    * @param Entity $item
+    */
    public function showFormForEntity(Entity $item) {
       $ID = $item->fields['id'];
       if (!$this->getFromDBByCrit(['entities_id' => $ID])) {
@@ -329,90 +362,110 @@ class PluginFlyvemdmEntityconfig extends CommonDBTM {
       $twig = plugin_flyvemdm_getTemplateEngine();
       echo $twig->render('entity_entityconfig.html', $data);
 
-      $item->showFormButtons(array('candel' => false, 'formfooter' => false));
+      $item->showFormButtons(['candel' => false, 'formfooter' => false]);
    }
 
+   public function getSearchOptionsNew() {
+      $tab = [];
 
-   /**
-    * @see CommonDBTM::getSearchOptions()
-    */
-   public function getSearchOptions() {
-      $tab = array();
-      $tab['common']                 = __s('Invitation', "flyvemdm");
+      $tab[] = [
+         'id'                 => 'common',
+         'name'               => __s('Invitation', 'flyvemdm')
+      ];
 
-      $i = 2;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'id';
-      $tab[$i]['name']                = __('ID');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'number';
+      $tab[] = [
+         'id'                 => '2',
+         'table'              => $this->getTable(),
+         'field'              => 'id',
+         'name'               => __('ID'),
+         'massiveaction'      => false,
+         'datatype'           => 'number'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'enroll_token';
-      $tab[$i]['name']                = __('Entity enroll token', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '3',
+         'table'              => $this->getTable(),
+         'field'              => 'enroll_token',
+         'name'               => __('Entity enroll token'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'agent_token_life';
-      $tab[$i]['name']                = __('Invitation token lifetime', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '4',
+         'table'              => $this->getTable(),
+         'field'              => 'agent_token_life',
+         'name'               => __('Invitation token lifetime'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'download_url';
-      $tab[$i]['name']                = __('dowlnoad URL', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '5',
+         'table'              => $this->getTable(),
+         'field'              => 'download_url',
+         'name'               => __('dowlnoad URL'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'device_limit';
-      $tab[$i]['name']                = __('Device limit', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '6',
+         'table'              => $this->getTable(),
+         'field'              => 'device_limit',
+         'name'               => __('Device limit'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'support_phone';
-      $tab[$i]['name']                = __('Support phone', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['nosearch']            = true;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '7',
+         'table'              => $this->getTable(),
+         'field'              => 'support_phone',
+         'name'               => __('Support phone'),
+         'massiveaction'      => false,
+         'nosearch'           => true,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'support_website';
-      $tab[$i]['name']                = __('Support website', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['nosearch']            = true;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '8',
+         'table'              => $this->getTable(),
+         'field'              => 'support_website',
+         'name'               => __('Support website'),
+         'massiveaction'      => false,
+         'nosearch'           => true,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'support_email';
-      $tab[$i]['name']                = __('Support email', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['nosearch']            = true;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '9',
+         'table'              => $this->getTable(),
+         'field'              => 'support_email',
+         'name'               => __('Support email'),
+         'massiveaction'      => false,
+         'nosearch'           => true,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'support_address';
-      $tab[$i]['name']                = __('Support address', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['nosearch']            = true;
-      $tab[$i]['datatype']            = 'text';
+      $tab[] = [
+         'id'                 => '10',
+         'table'              => $this->getTable(),
+         'field'              => 'support_address',
+         'name'               => __('Support address'),
+         'massiveaction'      => false,
+         'nosearch'           => true,
+         'datatype'           => 'text'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'entities_id';
-      $tab[$i]['name']                = __('Entity');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'dropdown';
+      $tab[] = [
+         'id'                 => '11',
+         'table'              => $this->getTable(),
+         'field'              => 'entities_id',
+         'name'               => __('Entity'),
+         'massiveaction'      => false,
+         'datatype'           => 'dropdown'
+      ];
 
       return $tab;
    }

@@ -47,11 +47,15 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
     */
    protected $user;
 
+   /**
+    * Gets the possibles statuses that an invitation can have
+    * @return array the possibles statuses of the invitation
+    */
    public function getEnumInvitationStatus() {
-      return array(
-            'pending'         => __('Pending', 'flyvemdm'),
-            'done'            => __('Done', 'flyvemdm'),
-      );
+      return [
+         'pending'         => __('Pending', 'flyvemdm'),
+         'done'            => __('Done', 'flyvemdm'),
+      ];
    }
 
    /**
@@ -62,6 +66,10 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
       return _n('Invitation', 'Invitations', $nb, "flyvemdm");
    }
 
+   /**
+    * Returns the URI to the picture file relative to the front/folder of the plugin
+    * @return string URI to the picture file
+    */
    public static function getMenuPicture() {
       return '../pics/picto-invitation.png';
    }
@@ -78,6 +86,11 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
       return $rights;
    }
 
+   /**
+    * Prepares input to follow the most used description convention
+    * @param array $input the data to use when creating a new row in the DB
+    * @return array|false the modified input data
+    */
    public function prepareInputForAdd($input) {
       // integrity checks
       if (!isset($input['_useremails'])) {
@@ -103,7 +116,7 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
       if (!$user->getFromDBbyName($input['_useremails'], '')) {
          // The user does not exists yet, create him
          $userId = $user->add([
-            '_useremails'     => array($input['_useremails']),
+            '_useremails'     => [$input['_useremails']],
             'name'            => $input['_useremails'],
             '_profiles_id'    => $guestProfileId,
             '_entities_id'    => $entityId,
@@ -175,11 +188,9 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
     * @see CommonDBTM::prepareInputForUpdate()
     */
    public function prepareInputForUpdate($input) {
-      global $DB;
-
       // Registered users need right to send again an invitation
       // but shall not be able to edit anything
-      $config = Config::getConfigurationValues('flyvemdm', array('registered_profiles_id'));
+      $config = Config::getConfigurationValues('flyvemdm', ['registered_profiles_id']);
       $registeredProfileId = $config['registered_profiles_id'];
       if ($_SESSION['glpiactiveprofile']['id'] == $registeredProfileId) {
          $forbidden = array_diff_key(
@@ -203,10 +214,19 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
       return $input;
    }
 
+   /**
+    * Finds the invitation that matches the token given in argument
+    * @param string $token
+    * @return boolean true if the invitation token exist
+    */
    public function getFromDBByToken($token) {
       return $this->getFromDBByQuery("WHERE `invitation_token`='$token'");
    }
 
+   /**
+    * Generates the Invitation Token
+    * @return string the generated token
+    */
    protected function setInvitationToken() {
       $invitation = new static();
       do {
@@ -221,7 +241,7 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
     */
    public function pre_deleteItem() {
       $invitationLog = new PluginFlyvemdmInvitationlog();
-      return $invitationLog->deleteByCriteria(array('plugin_flyvemdm_invitations_id' => $this->getID()));
+      return $invitationLog->deleteByCriteria(['plugin_flyvemdm_invitations_id' => $this->getID()]);
    }
 
    /**
@@ -299,7 +319,7 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
 
       // Generate a QRCode
       $barcodeobj = new TCPDF2DBarcode($encodedRequest, 'QRCODE,L');
-      $qrCode = $barcodeobj->getBarcodePngData(4, 4, array(0, 0, 0));
+      $qrCode = $barcodeobj->getBarcodePngData(4, 4, [0, 0, 0]);
 
       // Add border to the QR
       // TCPDF forgets the quiet zone
@@ -322,12 +342,12 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
       imagepng($compliantQRcode, GLPI_TMP_DIR . "/" . $tmpFile, 9);
 
       // Generate a document with the QR code
-      $input = array();
+      $input = [];
       $document = new Document();
       $input['entities_id']               = $this->input['entities_id'];
       $input['is_recursive']              = '0';
       $input['name']                      = addslashes(__('Enrollment QR code', 'flyvemdm'));
-      $input['_filename']                 = array($tmpFile);
+      $input['_filename']                 = [$tmpFile];
       $input['_only_if_upload_succeed']   = true;
       $documentId = $document->add($input);
 
@@ -335,7 +355,7 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
       //$document_Item = new Document_Item();
       //$document_Item->add([
       //      'documents_id' => $documentId,
-      //      'itemtype'     => 'PluginFlyvemdmInvitation',
+      //      'itemtype'     => PluginFlyvemdmInvitation::class,
       //      'items_id'     => $this->getID(),
       //      'entities_id'  => $this->fields['entities_id'],
       //      'is_recursive' => '0',
@@ -343,6 +363,9 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
       return $documentId;
    }
 
+   /**
+    * Sends an invitation
+    */
    public function sendInvitation() {
       NotificationEvent::raiseEvent(
             PluginFlyvemdmNotificationTargetInvitation::EVENT_GUEST_INVITATION,
@@ -350,57 +373,66 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
       );
    }
 
-   /**
-    * @see CommonDBTM::getSearchOptions()
-    */
-   public function getSearchOptions() {
-      global $CFG_GLPI;
+   public function getSearchOptionsNew() {
+      $tab = [];
 
-      $tab = array();
-      $tab['common']                 = __s('Invitation', "flyvemdm");
+      $tab[] = [
+         'id'                 => 'common',
+         'name'               => __s('Invitation', 'flyvemdm')
+      ];
 
-      $i = 1;
-      $tab[$i]['table']               = User::getTable();
-      $tab[$i]['field']               = 'name';
-      $tab[$i]['name']                = __('Name');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '1',
+         'table'              => 'glpi_users',
+         'field'              => 'name',
+         'name'               => __('Name'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'id';
-      $tab[$i]['name']                = __('ID');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'number';
+      $tab[] = [
+         'id'                 => '2',
+         'table'              => $this->getTable(),
+         'field'              => 'id',
+         'name'               => __('ID'),
+         'massiveaction'      => false,
+         'datatype'           => 'number'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'status';
-      $tab[$i]['name']                = __('Status');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '3',
+         'table'              => $this->getTable(),
+         'field'              => 'status',
+         'name'               => __('Status'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'expiration_date';
-      $tab[$i]['name']                = __('Expiration date', 'flyvemdm');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'string';
+      $tab[] = [
+         'id'                 => '4',
+         'table'              => $this->getTable(),
+         'field'              => 'expiration_date',
+         'name'               => __('Expiration date'),
+         'massiveaction'      => false,
+         'datatype'           => 'string'
+      ];
 
       return $tab;
    }
 
+   /**
+    * Deletes the invitation related to the entity being purged
+    * @param CommonDBTM $item
+    */
    public function hook_entity_purge(CommonDBTM $item) {
       $invitation = new static();
-      $invitation->deleteByCriteria(array('entities_id' => $item->getField('id')), 1);
+      $invitation->deleteByCriteria(['entities_id' => $item->getField('id')], 1);
    }
 
    /**
     * Show form for edition
     */
-   public function showForm($ID, $options = array()) {
-      global $CFG_GLPI, $DB;
-
+   public function showForm($ID, $options = []) {
       $this->initForm($ID, $options);
       $this->showFormHeader();
       $canUpdate = (!$this->isNewID($ID)) && ($this->canView() > 0) || $this->isNewID($ID);
@@ -414,7 +446,7 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
             'canUpdate'    => $canUpdate,
             'isNewID'      => $this->isNewID($ID),
             'invitation'   => $fields,
-            'resendButton' => Html::submit(_x('button', 'Re-send'), array('name' => 'resend')),
+            'resendButton' => Html::submit(_x('button', 'Re-send'), ['name' => 'resend']),
       ];
 
       $twig = plugin_flyvemdm_getTemplateEngine();
@@ -426,10 +458,14 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
       $this->showFormButtons($options);
    }
 
+   /**
+    * Displays the massive actions related to the invitation of the user
+    * @return string a HTML with the masssive actions
+    */
    protected function showMassiveActionInviteUser() {
       $twig = plugin_flyvemdm_getTemplateEngine();
       $data = [
-            'inviteButton' => Html::submit(_x('button', 'Post'), array('name' => 'massiveaction'))
+            'inviteButton' => Html::submit(_x('button', 'Post'), ['name' => 'massiveaction'])
       ];
       echo $twig->render('mass_invitation.html', $data);
    }
@@ -449,8 +485,11 @@ class PluginFlyvemdmInvitation extends CommonDBTM {
    }
 
    /**
+    * Executes the code to process the massive actions
     *
-    * @see CommonDBTM::processMassiveActionsForOneItemtype()
+    * @param MassiveAction $ma
+    * @param CommonDBTM $item
+    * @param array $ids
     */
    public static function processMassiveActionsForOneItemtype(MassiveAction $ma, CommonDBTM $item, array $ids) {
       switch ($ma->getAction()) {

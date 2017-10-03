@@ -61,9 +61,9 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
 
    protected $deleteDefaultFleet       =  false;
 
-   static $types = array(
-         'Phone'
-   );
+   static $types = [
+      'Phone'
+   ];
 
    /**
     * Localized name of the type
@@ -73,6 +73,10 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
       return _n('Fleet', 'Fleets', $nb, "flyvemdm");
    }
 
+   /**
+    * Returns the picture file for the menu
+    * @return string the menu picture
+    */
    public static function getMenuPicture() {
       return '../pics/picto-fleet.png';
    }
@@ -80,14 +84,14 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
    /**
     * @see CommonGLPI::defineTabs()
     */
-   public function defineTabs($options = array()) {
-      $tab = array();
+   public function defineTabs($options = []) {
+      $tab = [];
       $this->addDefaultFormTab($tab);
       if (!$this->isNewItem()) {
          $this->addStandardTab(PluginFlyvemdmAgent::class, $tab, $options);
-         $this->addStandardTab('PluginFlyvemdmTask', $tab, $options);
-         $this->addStandardTab('Notepad', $tab, $options);
-         $this->addStandardTab('Log', $tab, $options);
+         $this->addStandardTab(PluginFlyvemdmTask::class, $tab, $options);
+         $this->addStandardTab(Notepad::class, $tab, $options);
+         $this->addStandardTab(Log::class, $tab, $options);
       } else {
          $tab[1]  = __s('Main');
       }
@@ -98,7 +102,7 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
    /**
     * Show form for edition
     */
-   public function showForm($ID, $options = array()) {
+   public function showForm($ID, $options = []) {
       $this->initForm($ID, $options);
       $this->showFormHeader($options);
 
@@ -108,7 +112,7 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
             (isset($options['withtemplate']) && $options['withtemplate'] == 2),
             $this->getType(), -1);
       $fields['name']      = Html::autocompletionTextField($this, 'name',
-                             array('value' => $objectName, 'display' => false));
+                             ['value' => $objectName, 'display' => false]);
       $data = [
             'withTemplate' => (isset($options['withtemplate']) && $options['withtemplate'] ? "*" : ""),
             'fleet'        => $fields,
@@ -156,7 +160,7 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
       // check if fleet being deleted is the default one
       if ($this->fields['is_default'] == '1' && $this->deleteDefaultFleet !== true) {
 
-         $config = Config::getConfigurationValues('flyvemdm', array('service_profiles_id'));
+         $config = Config::getConfigurationValues('flyvemdm', ['service_profiles_id']);
          //if ( !Entity::canPurge() && $_SESSION['glpiactiveprofile']['id'] != $config['service_profiles_id']) {
             //Session::addMessageAfterRedirect(__('Cannot delete the default fleet', 'flyvemdm'));
             //return false;
@@ -200,13 +204,13 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
             $task->update($row);
          }
       }
-      if (!$task->deleteByCriteria(array('plugin_flyvemdm_fleets_id' => $fleetId), true)) {
+      if (!$task->deleteByCriteria(['plugin_flyvemdm_fleets_id' => $fleetId], true)) {
          Session::addMessageAfterRedirect(__('Could not delete policies on the fleet', 'flyvemdm'));
          return false;
       }
 
       $mqttQueue = new PluginFlyvemdmMqttupdatequeue();
-      if (!$mqttQueue->deleteByCriteria(array('plugin_flyvemdm_fleets_id' => $fleetId))) {
+      if (!$mqttQueue->deleteByCriteria(['plugin_flyvemdm_fleets_id' => $fleetId])) {
          Session::addMessageAfterRedirect(__('Could not delete message queue on the fleet', 'flyvemdm'));
          // Do not fail yet. We need a CRON purge feature on this itemtype
          //return false;
@@ -215,58 +219,77 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
       return true;
    }
 
-   /**
-    * @see CommonDBTM::getSearchOptions()
-    */
-   public function getSearchOptions() {
-      $tab = array();
-      $tab['common']                 = __s('Fleet', "flyvemdm");
+   public function getSearchOptionsNew() {
+      $tab = [];
 
-      $i = 1;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'name';
-      $tab[$i]['name']                = __('Name');
-      $tab[$i]['datatype']            = 'itemlink';
-      $tab[$i]['massiveaction']       = false;
+      $tab[] = [
+         'id'                 => 'common',
+         'name'               => __s('Fleet', 'flyvemdm')
+      ];
 
-      $i++;
-      $tab[$i]['table']               = self::getTable();
-      $tab[$i]['field']               = 'id';
-      $tab[$i]['name']                = __('ID');
-      $tab[$i]['massiveaction']       = false;
-      $tab[$i]['datatype']            = 'number';
+      $tab[] = [
+         'id'                 => '1',
+         'table'              => $this->getTable(),
+         'field'              => 'name',
+         'name'               => __('Name'),
+         'datatype'           => 'itemlink',
+         'massiveaction'      => false
+      ];
 
-      $i++;
-      $tab[$i]['table']               = PluginFlyvemdmTask::getTable();
-      $tab[$i]['field']               = 'items_id';
-      $tab[$i]['name']                = _n('Associated element', 'Associated elements', Session::getPluralNumber());
-      $tab[$i]['datatype']            = 'specific';
-      $tab[$i]['comments']            = true;
-      $tab[$i]['nosort']              = true;
-      $tab[$i]['nosearch']            = true;
-      $tab[$i]['additionalfields']    = array('itemtype');
-      $tab[$i]['joinparams']          = array('jointype'   => 'child');
-      $tab[$i]['forcegroupby']        = true;
-      $tab[$i]['massiveaction']       = false;
+      $tab[] = [
+         'id'                 => '2',
+         'table'              => $this->getTable(),
+         'field'              => 'id',
+         'name'               => __('ID'),
+         'massiveaction'      => false,
+         'datatype'           => 'number'
+      ];
 
-      $i++;
-      $tab[$i]['table']               = PluginFlyvemdmTask::getTable();
-      $tab[$i]['field']               = 'itemtype';
-      $tab[$i]['name']                = _n('Associated item type', 'Associated item types', Session::getPluralNumber());
-      $tab[$i]['datatype']            = 'itemtypename';
-      $tab[$i]['itemtype_list']       = 'fleet_types';
-      $tab[$i]['nosort']              = true;
-      $tab[$i]['additionalfields']    = array('itemtype');
-      $tab[$i]['joinparams']          = array('jointype'   => 'child');
-      $tab[$i]['forcegroupby']        = true;
-      $tab[$i]['massiveaction']       = false;
+      $tab[] = [
+         'id'                 => '3',
+         'table'              => 'glpi_plugin_flyvemdm_tasks',
+         'field'              => 'items_id',
+         'name'               => __('Associated elements'),
+         'datatype'           => 'specific',
+         'comments'           => '1',
+         'nosort'             => true,
+         'nosearch'           => true,
+         'additionalfields'   => [
+            '0'                  => 'itemtype'
+         ],
+         'joinparams'         => [
+            'jointype'           => 'child'
+         ],
+         'forcegroupby'       => true,
+         'massiveaction'      => false
+      ];
 
-      $i++;
-      $tab[$i]['table']           = self::getTable();
-      $tab[$i]['field']           = 'is_default';
-      $tab[$i]['name']            = __('Not managed', 'flyvemdm');
-      $tab[$i]['datatype']        = 'bool';
-      $tab[$i]['massiveaction']   = false;
+      $tab[] = [
+         'id'                 => '4',
+         'table'              => 'glpi_plugin_flyvemdm_tasks',
+         'field'              => 'itemtype',
+         'name'               => __('Associated item types'),
+         'datatype'           => 'itemtypename',
+         'itemtype_list'      => 'fleet_types',
+         'nosort'             => true,
+         'additionalfields'   => [
+            '0'                  => 'itemtype'
+         ],
+         'joinparams'         => [
+            'jointype'           => 'child'
+         ],
+         'forcegroupby'       => true,
+         'massiveaction'      => false
+      ];
+
+      $tab[] = [
+         'id'                 => '5',
+         'table'              => $this->getTable(),
+         'field'              => 'is_default',
+         'name'               => __('Not managed'),
+         'datatype'           => 'bool',
+         'massiveaction'      => false
+      ];
 
       return $tab;
    }
@@ -290,7 +313,7 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
    public function post_addItem() {
       // Generate default policies for groups of policies
       $task = new PluginFlyvemdmTask();
-      $task->publishPolicies($this, array('camera', 'connectivity', 'encryption', 'policies'));
+      $task->publishPolicies($this, ['camera', 'connectivity', 'encryption', 'policies']);
    }
 
    /**
@@ -314,7 +337,7 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
       $query = "SELECT DISTINCT `group` FROM `$table_policy`";
       $result = $DB->query($query);
       if ($result) {
-         $groups = array();
+         $groups = [];
          while ($row = $DB->fetch_assoc($result)) {
             $groups[] = $row['group'];
          }
@@ -344,7 +367,7 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
       }
 
       // Force deletion regardless a file or application removal policy should take place
-      $taskTable = getTableForItemType('PluginFlyvemdmTask');
+      $taskTable = PluginFlyvemdmTask::getTable();
       $itemId = $this->getID();
       $query = "DELETE FROM `$taskTable` WHERE `plugin_flyvemdm_fleets_id`='$itemId'";
       $DB->query($query);
@@ -385,16 +408,13 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
       return $this;
    }
 
-   /**
-    * @see PluginFlyvemdmNotifiable::getPackages()
-    */
    public function getPackages() {
-      $packages = array();
+      $packages = [];
 
       $fleetId = $this->getID();
       if ($fleetId > 0) {
          $task = new PluginFlyvemdmTask();
-         $rows = $task->find("`plugin_flyvemdm_fleets_id`='$fleetId' AND `itemtype`='PluginFlyvemdmPackage'");
+         $rows = $task->find("`plugin_flyvemdm_fleets_id` = '$fleetId' AND `itemtype`='" . PluginFlyvemdmPackage::class . "'");
          foreach ($rows as $row) {
             $package = new PluginFlyvemdmPackage();
             $package->getFromDB($row['plugin_flyvemdm_packages_id']);
@@ -409,12 +429,12 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
     * @see PluginFlyvemdmNotifiable::getFiles()
     */
    public function getFiles() {
-      $files = array();
+      $files = [];
 
       $fleetId = $this->getID();
       if ($fleetId > 0) {
          $task = new PluginFlyvemdmTask();
-         $rows = $task->find("`plugin_flyvemdm_fleets_id`='$fleetId' AND `itemtype`='PluginFlyvemdmFile'");
+         $rows = $task->find("`plugin_flyvemdm_fleets_id`='$fleetId' AND `itemtype`='" . PluginFlyvemdmFile::class . "'");
          foreach ($rows as $row) {
             $file = new PluginFlyvemdmPackage();
             $file->getFromDB($row['plugin_flyvemdm_packages_id']);
@@ -437,11 +457,11 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
 
       $rows = $this->find("`is_default`='1' AND `entities_id`='$entityId'", "`id` ASC");
       if (count($rows) < 1) {
-         return $this->add(array(
-               'is_default'  => '1',
-               'name'        => __("not managed fleet", 'flyvemdm'),
-               'entities_id' => $entityId,
-         ));
+         return $this->add([
+            'is_default'  => '1',
+            'name'        => __("not managed fleet", 'flyvemdm'),
+            'entities_id' => $entityId,
+         ]);
       }
       reset($rows);
       $this->getFromDB(current(array_keys($rows)));
@@ -493,7 +513,7 @@ class PluginFlyvemdmFleet extends CommonDBTM implements PluginFlyvemdmNotifiable
       if ($item instanceof Entity) {
          $fleet = new static();
          $fleet->deleteDefaultFleet = true;
-         $fleet->deleteByCriteria(array('entities_id' => $item->getField('id')), 1);
+         $fleet->deleteByCriteria(['entities_id' => $item->getField('id')], 1);
       }
    }
 }

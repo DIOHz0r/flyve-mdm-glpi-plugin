@@ -59,6 +59,10 @@ class PluginFlyvemdmFile extends CommonDBTM {
       return _n('File', 'Files', $nb, "flyvemdm");
    }
 
+   /**
+    * Returns the URI to the picture file relative to the front/folder of the plugin
+    * @return string URI to the picture file
+    */
    public static function getMenuPicture() {
       return '../pics/picto-file.png';
    }
@@ -224,7 +228,7 @@ class PluginFlyvemdmFile extends CommonDBTM {
       $success = false;
 
       $fileExtension = pathinfo($source['name'], PATHINFO_EXTENSION);
-      if (false && ! in_array($fileExtension, array("txt", "pdf"))) {
+      if (false && ! in_array($fileExtension, ["txt", "pdf"])) {
          $success = false;
       } else {
          $this->createEntityDirectory(dirname($destination));
@@ -245,7 +249,7 @@ class PluginFlyvemdmFile extends CommonDBTM {
     * @return string|boolean URL of the file
     */
    public function getFileURL() {
-      $config = Config::getConfigurationValues('flyvemdm', array('deploy_base_url'));
+      $config = Config::getConfigurationValues('flyvemdm', ['deploy_base_url']);
       $deployBaseURL = $config['deploy_base_url'];
       if ($deployBaseURL === null) {
          return false;
@@ -265,30 +269,40 @@ class PluginFlyvemdmFile extends CommonDBTM {
       }
    }
 
-   /**
-    * @see CommonDBTM::getSearchOptions()
-    */
-   public function getSearchOptions() {
-      $tab = array();
-      $tab['common']                 = __s('File', "flyvemdm");
+   public function getSearchOptionsNew() {
+      $tab = [];
 
-      $tab[1]['table']               = self::getTable();
-      $tab[1]['field']               = 'name';
-      $tab[1]['name']                = __('Name');
-      $tab[1]['datatype']            = 'itemlink';
-      $tab[1]['massiveaction']       = false;
+      $tab[] = [
+         'id'                 => 'common',
+         'name'               => __s('File', 'flyvemdm')
+      ];
 
-      $tab[2]['table']               = self::getTable();
-      $tab[2]['field']               = 'id';
-      $tab[2]['name']                = __('ID');
-      $tab[2]['massiveaction']       = false;
-      $tab[2]['datatype']            = 'number';
+      $tab[] = [
+         'id'                 => '1',
+         'table'              => $this->getTable(),
+         'field'              => 'name',
+         'name'               => __('Name'),
+         'datatype'           => 'itemlink',
+         'massiveaction'      => false
+      ];
 
-      $tab[3]['table']               = self::getTable();
-      $tab[3]['field']               = 'source';
-      $tab[3]['name']                = __('Source', 'flyvemdm');
-      $tab[3]['datatype']            = 'string';
-      $tab[3]['massiveaction']       = false;
+      $tab[] = [
+         'id'                 => '2',
+         'table'              => $this->getTable(),
+         'field'              => 'id',
+         'name'               => __('ID'),
+         'massiveaction'      => false,
+         'datatype'           => 'number'
+      ];
+
+      $tab[] = [
+         'id'                 => '3',
+         'table'              => $this->getTable(),
+         'field'              => 'source',
+         'name'               => __('Source'),
+         'datatype'           => 'string',
+         'massiveaction'      => false
+      ];
 
       return $tab;
    }
@@ -298,12 +312,19 @@ class PluginFlyvemdmFile extends CommonDBTM {
     */
    public function pre_deleteItem() {
       $task = new PluginFlyvemdmTask();
-      return $task->deleteByCriteria(array(
+      return $task->deleteByCriteria([
             'itemtype'  => $this->getType(),
             'items_id'  => $this->getID()
-      ));
+      ]);
    }
 
+   public function post_addItem() {
+      global $DB;
+   }
+
+   /**
+    * Actions done after the getFromFB method
+    */
    public function post_getFromDB() {
       // Check the user can view this itemtype and can view this item
       if ($this->canView() && $this->canViewItem()) {
@@ -352,6 +373,9 @@ class PluginFlyvemdmFile extends CommonDBTM {
       }
    }
 
+   /**
+    * Sends a file
+    */
    protected function sendFile() {
       $streamSource = FLYVEMDM_FILE_PATH . "/" . $this->fields['source'];
 
@@ -438,9 +462,13 @@ class PluginFlyvemdmFile extends CommonDBTM {
       exit(0);
    }
 
+   /**
+    * Deletes files related to the entity being purged
+    * @param CommonDBTM $item
+    */
    public function hook_entity_purge(CommonDBTM $item) {
       $file = new static();
-      $file->deleteByCriteria(array('entities_id' => $item->getField('id')), 1);
+      $file->deleteByCriteria(['entities_id' => $item->getField('id')], 1);
    }
 
    /**
@@ -448,7 +476,7 @@ class PluginFlyvemdmFile extends CommonDBTM {
     * @param integer $ID ID of the item to show
     * @param array $options
     */
-   public function showForm($ID, $options = array()) {
+   public function showForm($ID, $options = []) {
       $this->initForm($ID, $options);
       $this->showFormHeader($options);
 
